@@ -15,12 +15,16 @@ class ToDoList extends React.Component {
             inputValue: "",
             tasks: [],
             error: "",
+            filter: "all",
+            date: new Date(),
         }
 
         this.inputHandler = this.inputHandler.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
         this.fetchGetRequest = this.fetchGetRequest.bind(this);
         this.deleteATask = this.deleteATask.bind(this);
+        this.toggleComplete = this.toggleComplete.bind(this);
+        this.filterToggle = this.filterToggle.bind(this);
     }
 
     componentDidMount() {
@@ -38,6 +42,32 @@ class ToDoList extends React.Component {
             this.setState({error: error.message});
             console.log(error);
         });
+    }
+
+    filterToggle(event) {
+        console.log(event.target.name);
+        this.setState({filter: event.target.name});
+    }
+
+    toggleComplete(id, completed) {
+        if(!id) {
+            return; //return if the task has no id.
+        }
+
+        const newState = completed ? 'active' : 'complete';
+
+        fetch(`https://altcademy-to-do-list-api.herokuapp.com/tasks/${id}/mark_${newState}?api_key=293`, {
+            method: 'PUT',
+            mode: 'cors',
+        }).then(checkStatus)
+          .then(json)
+          .then(data => {
+              console.log(data);
+              this.fetchGetRequest();
+          }).catch(error => {
+              this.setState({error: error.message});
+              console.log(error);
+          })
     }
 
     inputHandler(event) {
@@ -86,6 +116,7 @@ class ToDoList extends React.Component {
         }).then(checkStatus)
           .then(json)
           .then(data => {
+              console.log(data);
               this.fetchGetRequest();
           }).catch(error => {
               this.setState({error: error.message});
@@ -94,28 +125,57 @@ class ToDoList extends React.Component {
     }
     
     render() {
-        const {inputValue, tasks} = this.state;
+        const {inputValue, tasks, filter, date} = this.state;
         
         return(
             <div className="container">
                 <div className="row">
                     <div className="col-12">
                         <h2 className="text-center mb-3">To Do List</h2>
+                            <p className="text-center">{date.toLocaleDateString()}</p>
                         
-                        {tasks.length > 0 ? tasks.map(task => {
-                            return(<Task key={task.id} task={task} onDelete={this.deleteATask}/>);
-                        }) : <p>No Tasks Here!</p>}
+                        <hr />
+                        <div className="mt-3 d-flex justify-content-around">
+                                <label>
+                                    <input type="checkbox" name="all" checked={filter === 'all'} onChange={this.filterToggle}/>
+                                    ALL
+                                </label>
+                                <label>
+                                    <input type="checkbox" name="active" checked={filter === 'active'} onChange={this.filterToggle}/>
+                                    ACTIVE
+                                </label>
+                                <label>
+                                    <input type="checkbox" name="completed" checked={filter === "completed"} onChange={this.filterToggle}/>
+                                    COMPLETED
+                                </label>
+                        </div>
+                        <hr />
 
-                        <form onSubmit={this.handleSubmit} className="form-inline my-4">
-                            
-                            <input type="text" className="form-control mr-sm-6 mb-2"
-                            placeholder="new task"
-                            value={inputValue}
-                            onChange={this.inputHandler}/>
+                            {tasks.length > 0 ? tasks.filter(task => {
+                                if(filter === 'all') {
+                                    return true;
+                                } else if (filter === "active") {
+                                    return !task.completed;
+                                } else {
+                                    return task.completed;
+                                }
+                            }).map(task => {
+                                return(<Task key={task.id} task={task} onDelete={this.deleteATask} onComplete={this.toggleComplete}/>);
+                            }) : <p>No Tasks Here!</p>}
 
-                            <button type="submit" className="btn btn-primary mb-2">Submit</button>
+                            <hr />
+                            <div className="d-flex justify-content-center">
+                                <form onSubmit={this.handleSubmit} className="form-inline my-4">
+                                        
+                                        <input type="text" className="form-control mr-sm-6 mb-2"
+                                        placeholder="New Task"
+                                        value={inputValue}
+                                        onChange={this.inputHandler}/>
 
-                        </form>
+                                        <button type="submit" className="btn btn-primary mb-2">ADD</button>
+
+                                </form>
+                            </div>
 
                     </div>
                 </div>

@@ -28,13 +28,17 @@ var ToDoList = function (_React$Component) {
         _this.state = {
             inputValue: "",
             tasks: [],
-            error: ""
+            error: "",
+            filter: "all",
+            date: new Date()
         };
 
         _this.inputHandler = _this.inputHandler.bind(_this);
         _this.handleSubmit = _this.handleSubmit.bind(_this);
         _this.fetchGetRequest = _this.fetchGetRequest.bind(_this);
         _this.deleteATask = _this.deleteATask.bind(_this);
+        _this.toggleComplete = _this.toggleComplete.bind(_this);
+        _this.filterToggle = _this.filterToggle.bind(_this);
         return _this;
     }
 
@@ -57,6 +61,34 @@ var ToDoList = function (_React$Component) {
             });
         }
     }, {
+        key: "filterToggle",
+        value: function filterToggle(event) {
+            console.log(event.target.name);
+            this.setState({ filter: event.target.name });
+        }
+    }, {
+        key: "toggleComplete",
+        value: function toggleComplete(id, completed) {
+            var _this3 = this;
+
+            if (!id) {
+                return; //return if the task has no id.
+            }
+
+            var newState = completed ? 'active' : 'complete';
+
+            fetch("https://altcademy-to-do-list-api.herokuapp.com/tasks/" + id + "/mark_" + newState + "?api_key=293", {
+                method: 'PUT',
+                mode: 'cors'
+            }).then(checkStatus).then(json).then(function (data) {
+                console.log(data);
+                _this3.fetchGetRequest();
+            }).catch(function (error) {
+                _this3.setState({ error: error.message });
+                console.log(error);
+            });
+        }
+    }, {
         key: "inputHandler",
         value: function inputHandler(event) {
             this.setState({ inputValue: event.target.value });
@@ -64,7 +96,7 @@ var ToDoList = function (_React$Component) {
     }, {
         key: "handleSubmit",
         value: function handleSubmit(event) {
-            var _this3 = this;
+            var _this4 = this;
 
             event.preventDefault();
             var inputValue = this.state.inputValue;
@@ -87,17 +119,17 @@ var ToDoList = function (_React$Component) {
                 })
             }).then(checkStatus).then(json).then(function (data) {
                 console.log(data);
-                _this3.setState({ inputValue: "" });
-                _this3.fetchGetRequest();
+                _this4.setState({ inputValue: "" });
+                _this4.fetchGetRequest();
             }).catch(function (error) {
-                _this3.setState({ error: error.message });
+                _this4.setState({ error: error.message });
                 console.log(error);
             });
         }
     }, {
         key: "deleteATask",
         value: function deleteATask(id) {
-            var _this4 = this;
+            var _this5 = this;
 
             if (!id) {
                 return; // return if the task has no id.
@@ -107,20 +139,23 @@ var ToDoList = function (_React$Component) {
                 method: "DELETE",
                 mode: "cors"
             }).then(checkStatus).then(json).then(function (data) {
-                _this4.fetchGetRequest();
+                console.log(data);
+                _this5.fetchGetRequest();
             }).catch(function (error) {
-                _this4.setState({ error: error.message });
+                _this5.setState({ error: error.message });
                 console.log(error);
             });
         }
     }, {
         key: "render",
         value: function render() {
-            var _this5 = this;
+            var _this6 = this;
 
             var _state = this.state,
                 inputValue = _state.inputValue,
-                tasks = _state.tasks;
+                tasks = _state.tasks,
+                filter = _state.filter,
+                date = _state.date;
 
 
             return React.createElement(
@@ -137,24 +172,66 @@ var ToDoList = function (_React$Component) {
                             { className: "text-center mb-3" },
                             "To Do List"
                         ),
-                        tasks.length > 0 ? tasks.map(function (task) {
-                            return React.createElement(Task, { key: task.id, task: task, onDelete: _this5.deleteATask });
+                        React.createElement(
+                            "p",
+                            { className: "text-center" },
+                            date.toLocaleDateString()
+                        ),
+                        React.createElement("hr", null),
+                        React.createElement(
+                            "div",
+                            { className: "mt-3 d-flex justify-content-around" },
+                            React.createElement(
+                                "label",
+                                null,
+                                React.createElement("input", { type: "checkbox", name: "all", checked: filter === 'all', onChange: this.filterToggle }),
+                                "ALL"
+                            ),
+                            React.createElement(
+                                "label",
+                                null,
+                                React.createElement("input", { type: "checkbox", name: "active", checked: filter === 'active', onChange: this.filterToggle }),
+                                "ACTIVE"
+                            ),
+                            React.createElement(
+                                "label",
+                                null,
+                                React.createElement("input", { type: "checkbox", name: "completed", checked: filter === "completed", onChange: this.filterToggle }),
+                                "COMPLETED"
+                            )
+                        ),
+                        React.createElement("hr", null),
+                        tasks.length > 0 ? tasks.filter(function (task) {
+                            if (filter === 'all') {
+                                return true;
+                            } else if (filter === "active") {
+                                return !task.completed;
+                            } else {
+                                return task.completed;
+                            }
+                        }).map(function (task) {
+                            return React.createElement(Task, { key: task.id, task: task, onDelete: _this6.deleteATask, onComplete: _this6.toggleComplete });
                         }) : React.createElement(
                             "p",
                             null,
                             "No Tasks Here!"
                         ),
+                        React.createElement("hr", null),
                         React.createElement(
-                            "form",
-                            { onSubmit: this.handleSubmit, className: "form-inline my-4" },
-                            React.createElement("input", { type: "text", className: "form-control mr-sm-6 mb-2",
-                                placeholder: "new task",
-                                value: inputValue,
-                                onChange: this.inputHandler }),
+                            "div",
+                            { className: "d-flex justify-content-center" },
                             React.createElement(
-                                "button",
-                                { type: "submit", className: "btn btn-primary mb-2" },
-                                "Submit"
+                                "form",
+                                { onSubmit: this.handleSubmit, className: "form-inline my-4" },
+                                React.createElement("input", { type: "text", className: "form-control mr-sm-6 mb-2",
+                                    placeholder: "New Task",
+                                    value: inputValue,
+                                    onChange: this.inputHandler }),
+                                React.createElement(
+                                    "button",
+                                    { type: "submit", className: "btn btn-primary mb-2" },
+                                    "ADD"
+                                )
                             )
                         )
                     )

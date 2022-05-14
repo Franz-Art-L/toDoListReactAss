@@ -1,4 +1,12 @@
 .container {
-    background-color: #B4ECE3;
+    background-color: #82DBD8;
     border-radius: 10px;
+}
+
+#root {
+    background-color: #16003B;
+}
+
+html {
+    background-color: #16003B;
 }
